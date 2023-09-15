@@ -55,7 +55,7 @@ VERILATOR_FLAGS += --build --build-jobs 0
 # Use custom output directory
 VERILATOR_FLAGS += --Mdir $(BUILD_DIR)/obj_dir
 # Input files for Verilator
-VERILATOR_INPUT = -f input.vc $(BUILD_DIR)/top.v third_party/pythondata-cpu-vexriscv/pythondata_cpu_vexriscv/verilog/VexRiscv_Linux.v ../sim.cpp ../sim_uart.cpp
+VERILATOR_INPUT = -f input.vc $(BUILD_DIR)/top.v third_party/pythondata-cpu-vexriscv/pythondata_cpu_vexriscv/verilog/VexRiscv_Linux.v $(BUILD_DIR)/wishbone_interconnect.v ../sim.cpp ../sim_uart.cpp
 
 ######################################################################
 

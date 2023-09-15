@@ -6,6 +6,9 @@ OBJCOPY = $(PREFIX)-objcopy
 NINJA = ninja
 MESON = meson
 
+# Files
+HEADERS = csr.h soc.h mem.h
+PY_SRC = generate_soc.py amaranth_wrapper.py wishbone_interconnect.py
 BUILD_DIR ?= build
 
 BASE_SOC_OPTS = --uart-type uart --build-dir $(BUILD_DIR)
@@ -29,6 +32,7 @@ synth: $(BUILD_DIR)/top.bit
 
 sim-run: sim firmware
 	cd $(BUILD_DIR) && obj_dir/Vtop +trace
+	sed -i 's/.cc:2083:/_/g' $(BUILD_DIR)/dump.vcd
 
 picolibc:
 	mkdir -p $(PICOLIBC)/build
@@ -39,17 +43,17 @@ picolibc:
 	$(NINJA) -C $(PICOLIBC)/build
 	$(MESON) install -C $(PICOLIBC)/build --only-changed
 
-$(BUILD_DIR)/top.v: generate_soc.py | $(BUILD_DIR)
+$(BUILD_DIR)/top.v: $(PY_SRC) | $(BUILD_DIR)
 	$(PYTHON) generate_soc.py $(BASE_SOC_OPTS) $(TARGET_SOC_OPTS)
 	rm -f *.init
 	touch $@
 
-$(BUILD_DIR)/top.tcl: generate_soc.py | $(BUILD_DIR)
+$(BUILD_DIR)/top.tcl: $(PY_SRC) | $(BUILD_DIR)
 	$(PYTHON) generate_soc.py --bitstream $(BASE_SOC_OPTS) $(TARGET_SOC_OPTS)
 	rm -f *.init
 	touch $@
 
-$(AUTOGEN_H) &: generate_soc.py | $(BUILD_DIR)
+$(AUTOGEN_H) &: $(PY_SRC) | $(BUILD_DIR)
 	$(PYTHON) generate_soc.py --headers $(BASE_SOC_OPTS)
 
 $(BUILD_DIR)/top.bit: $(BUILD_DIR)/top.v $(BUILD_DIR)/top.tcl $(BUILD_DIR)/top_rom.init | $(BUILD_DIR)

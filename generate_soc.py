@@ -9,18 +9,14 @@ from litex.build.io import CRG as SimCRG
 from litex.soc.cores import timer, uart
 from litex.soc.cores.cpu.vexriscv import VexRiscv
 from litex.soc.integration.soc import SoCCSRRegion, SoCRegion
-from litex.soc.interconnect.axi import (
-    AXI2AXILite,
-    AXIInterconnectShared,
-    AXIInterface,
-    AXILite2CSR,
-    AXILiteInterface,
-    AXILiteSRAM,
-    Wishbone2AXI,
-)
+from litex.soc.interconnect import wishbone
+from litex.soc.interconnect.csr import AutoCSR, CSRStatus, CSRStorage
 from litex_boards.platforms.antmicro_lpddr4_test_board import Platform
 from litex_boards.targets import antmicro_lpddr4_test_board
 from migen import *
+
+from amaranth_wrapper import Amaranth2Migen
+from wishbone_interconnect import WishboneRRInterconnect
 
 sim_serial = [
     (
@@ -54,8 +50,8 @@ class SoC(Module):
         iodelay_clk_freq=400e6,
     ):
         bus_mock = SoCBusHandlerMock(address_width=32, data_width=32)
-        self.slaves = []
-        self.masters = []
+        self.slaves = {}
+        self.masters = {}
         self.ios = set()
         self.mem_regions = {}
         self.csr_addr_map = {
@@ -92,12 +88,7 @@ class SoC(Module):
 
         if self.uart_type == "uartbone":
             self.submodules.uart = uart.UARTBone(phy=self.uart_phy, clk_freq=1e6)
-            # UARTBone expects exactly 32-bit address width while the CPU has 30-bit address width
-            # There are also 2 bits added to each on the AXI side when converting from wishbone to AXI
-            # so the final address width here has to be 34 bits
-            iface = AXIInterface(address_width=34, name="axiinterface_uart")
-            self.masters.append(iface)
-            self.submodules += Wishbone2AXI(self.uart.wishbone, iface)
+            self.masters["uartbone"] = self.uart.wishbone
         elif self.uart_type == "uart":
             self.submodules.uart = uart.UART(phy=self.uart_phy)
 
@@ -110,33 +101,47 @@ class SoC(Module):
                 master=csr_master, slaves=csrs.get_buses()
             )
 
-        csr_axilite = AXILiteInterface(
+        csr_wishbone = wishbone.Interface(
             data_width=bus_mock.data_width,
-            address_width=bus_mock.address_width,
+            adr_width=bus_mock.data_width,
             bursting=bus_mock.bursting,
-            name="axiliteinterface_csr",
         )
-        csr_axi = AXIInterface(
-            data_width=bus_mock.data_width,
-            address_width=bus_mock.address_width,
-            id_width=1,
-            name="axiinterface_csr",
+        self.submodules += wishbone.Wishbone2CSR(
+            bus_wishbone=csr_wishbone, bus_csr=csr_master
         )
-        self.submodules += AXILite2CSR(axi_lite=csr_axilite, bus_csr=csr_master)
-        self.submodules += AXI2AXILite(csr_axi, csr_axilite)
 
         csr_region = SoCRegion(origin=self.core.mem_map["csr"], size=0x1000)
-        self.slaves.append((csr_region.decoder(bus_mock), csr_axi))
+        self.slaves["csr"] = (csr_wishbone, csr_region)
 
-        for bus in self.core.periph_buses:
-            iface = AXIInterface(name="axiinterface_cpubus")
-            self.masters.append(iface)
-            self.submodules += Wishbone2AXI(bus, iface)
+        self.masters["cpu_ibus"] = self.core.ibus
+        self.masters["cpu_dbus"] = self.core.dbus
 
         self.add_memory(
             bus_mock, self.core.mem_map["rom"], 0xA000, read_only=True, name="rom"
         )
         self.add_memory(bus_mock, self.core.mem_map["sram"], 0x1000, name="sram")
+
+        self.create_interconnect(self.masters, self.slaves)
+
+    def create_interconnect(self, masters, slaves):
+        ic = WishboneRRInterconnect(
+            addr_width=30, data_width=32, granularity=8, features={"bte", "cti", "err"}
+        )
+
+        for name, _ in masters.items():
+            ic.add_master(name=name)
+        for name, (_, mem_region) in slaves.items():
+            ic.add_peripheral(name=name, addr=mem_region.origin, size=mem_region.size)
+
+        self.submodules.interconnect = Amaranth2Migen(
+            ic, platform, "wishbone_interconnect", self.build_dir
+        )
+
+        for name, master in masters.items():
+            self.comb += master.connect(self.interconnect.interfaces[name])
+
+        for name, (slave, _) in slaves.items():
+            self.comb += self.interconnect.interfaces[name].connect(slave)
 
     def gen_csr_header(self):
         header = ""
@@ -185,29 +190,12 @@ class SoC(Module):
                 file.write(gen_f())
 
     def add_memory(self, bus_mock, origin, size, read_only=False, init=[], name=None):
-        bus_axilite = AXILiteInterface(
-            data_width=bus_mock.data_width,
-            address_width=bus_mock.address_width,
-            bursting=bus_mock.bursting,
-            name="axiliteinterface_" + name if name is not None else "",
-        )
-        bus_axi = AXIInterface(
-            data_width=bus_mock.data_width,
-            address_width=bus_mock.address_width,
-            id_width=1,
-            name="axiinterface_" + name if name is not None else "",
-        )
-        self.submodules += AXI2AXILite(bus_axi, bus_axilite)
-        self.submodules += AXILiteSRAM(
-            size, bus=bus_axilite, read_only=read_only, init=init, name=name
+        bus = wishbone.Interface()
+        self.submodules += wishbone.SRAM(
+            size, bus=bus, read_only=read_only, init=init, name=name
         )
         mem_region = SoCRegion(origin=origin, size=size)
-        self.slaves.append((mem_region.decoder(bus_mock), bus_axi))
-
-    def do_finalize(self):
-        self.submodules += AXIInterconnectShared(
-            masters=self.masters, slaves=self.slaves
-        )
+        self.slaves[name] = (bus, mem_region)
 
 
 if __name__ == "__main__":
@@ -251,8 +239,12 @@ if __name__ == "__main__":
     platform = Platform(device="xc7k70tfbg484-3")
     soc = SoC(platform, args.sim, args.uart_type, args.build_dir)
     if args.verilog:
-        platform.get_verilog(soc).write(f"{args.build_dir}/top.v")
+        # Workaround - because litex does os.chdir in platform.build(), we also have to change
+        # the working directory to be consistent (this is important for internal modules of
+        # the SoC that might also generate verilog)
+        os.chdir(args.build_dir)
+        platform.get_verilog(soc).write(f"top.v")
     if args.bitstream:
-        platform.build(soc, run=False)
+        platform.build(soc, build_dir=args.build_dir, build_name="top", run=False)
     if args.headers:
         soc.write_headers()
