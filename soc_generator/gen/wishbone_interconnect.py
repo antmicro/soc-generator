@@ -1,7 +1,9 @@
+# Copyright 2023 Antmicro
+# SPDX-License-Identifier: Apache-2.0
+
 from typing import Iterable
 
 from amaranth import *
-from amaranth.back import verilog
 from amaranth.lib.wiring import *
 from amaranth.utils import log2_int
 from amaranth_soc import wishbone
@@ -42,12 +44,7 @@ class WishboneRRInterconnect(Elaboratable):
     """
 
     def __init__(
-        self,
-        *,
-        addr_width: int,
-        data_width: int,
-        granularity: int,
-        features: Iterable[str] = ()
+        self, *, addr_width: int, data_width: int, granularity: int, features: Iterable[str] = ()
     ):
         self.addr_width = addr_width
         self.data_width = data_width
@@ -81,7 +78,8 @@ class WishboneRRInterconnect(Elaboratable):
 
     def add_master(self, *, name: str):
         # Amaranth convention is to describe signatures from the perspective of master, but from
-        # the perspective of the interconnect the signature has to be flipped to be compatible with an actual master
+        # the perspective of the interconnect the signature has to be flipped to be compatible
+        # with an actual master
         signature = wishbone.Signature(
             addr_width=self.addr_width,
             data_width=self.data_width,
@@ -98,9 +96,10 @@ class WishboneRRInterconnect(Elaboratable):
         addr_width = log2_int(size, need_pow2=False)
         granularity_bits = log2_int(self.data_width // self.granularity)
 
-        # Convention of what addr_width and data_width mean for MemoryMap is different than for interfaces, in particular:
-        # - addr_width is the "effective" address width - address width of the interface itself + granularity bits
-        #   (used for selecting subword in a word, e.g. byte in a 32b word)
+        # Convention of what addr_width and data_width mean for MemoryMap is different than for
+        # interfaces, in particular:
+        # - addr_width is the "effective" address width - address width of the interface itself
+        #   + granularity bits (used for selecting subword in a word, e.g. byte in a 32b word)
         # - data_width is width of the minimum addressable unit, e.g. a byte
         # This is mentioned in amaranth_soc.wishbone.Interface docstring
         mmap = MemoryMap(

@@ -1,5 +1,0 @@
-migen==0.9.2
-meson==1.2.1
-packaging==23.1
-amaranth-yosys==0.10.0.dev46
-git+https://github.com/amaranth-lang/amaranth@392ead8d00c9a130b656b3af45c21fa410268301

@@ -1,22 +1,30 @@
+# Copyright 2023 Antmicro
+# SPDX-License-Identifier: Apache-2.0
+
 import argparse
 import os
 from dataclasses import dataclass
 
-import litex.soc.integration.export as export
-import litex.soc.interconnect.csr_bus as csr_bus
-from litex.build.generic_platform import Pins, Subsignal
-from litex.build.io import CRG as SimCRG
-from litex.soc.cores import timer, uart
-from litex.soc.cores.cpu.vexriscv import VexRiscv
-from litex.soc.integration.soc import SoCCSRRegion, SoCRegion
-from litex.soc.interconnect import wishbone
-from litex.soc.interconnect.csr import AutoCSR, CSRStatus, CSRStorage
-from litex_boards.platforms.antmicro_lpddr4_test_board import Platform
-from litex_boards.targets import antmicro_lpddr4_test_board
-from migen import *
+try:
+    import litex.soc.integration.export as export
+    import litex.soc.interconnect.csr_bus as csr_bus
+    from litex.build.generic_platform import Pins, Subsignal
+    from litex.build.io import CRG as SimCRG  # noqa: N811
+    from litex.soc.cores import timer, uart
+    from litex.soc.cores.cpu.vexriscv import VexRiscv
+    from litex.soc.integration.soc import SoCCSRRegion, SoCRegion
+    from litex.soc.interconnect import wishbone
+    from litex_boards.platforms.antmicro_lpddr4_test_board import Platform
+    from litex_boards.targets import antmicro_lpddr4_test_board
+    from migen import *
+except ImportError:
+    raise RuntimeError(
+        'Missing dependencies, you need to install "generate_soc_deps" optional dependencies'
+        'of soc_generator package, e.g. "pip install soc_generator[generate_soc_deps]"'
+    )
 
-from amaranth_wrapper import Amaranth2Migen
-from wishbone_interconnect import WishboneRRInterconnect
+from soc_generator.gen.amaranth_wrapper import Amaranth2Migen
+from soc_generator.gen.wishbone_interconnect import WishboneRRInterconnect
 
 sim_serial = [
     (
@@ -49,7 +57,7 @@ class SoC(Module):
         sys_clk_freq=50e6,
         iodelay_clk_freq=400e6,
     ):
-        bus_mock = SoCBusHandlerMock(address_width=32, data_width=32)
+        bus_mock = SoCBusHandlerMock(address_width=30, data_width=32)
         self.slaves = {}
         self.masters = {}
         self.ios = set()
@@ -60,6 +68,7 @@ class SoC(Module):
         }
         self.csr_paging = 0x200
 
+        self.platform = platform
         self.sim = sim
         self.uart_type = uart_type
         self.build_dir = build_dir
@@ -81,9 +90,7 @@ class SoC(Module):
             self.submodules.uart_phy = uart.RS232PHYModel(self.uart_pads)
         else:
             self.uart_pads = platform.request("serial", number=1)
-            self.submodules.uart_phy = uart.UARTPHY(
-                self.uart_pads, sys_clk_freq, 115200
-            )
+            self.submodules.uart_phy = uart.UARTPHY(self.uart_pads, sys_clk_freq, 115200)
         self.ios.update(self.uart_pads.flatten())
 
         if self.uart_type == "uartbone":
@@ -97,18 +104,14 @@ class SoC(Module):
             self, lambda name, _: self.csr_addr_map[name], paging=self.csr_paging
         )
         if csrs.get_buses():
-            self.submodules += csr_bus.Interconnect(
-                master=csr_master, slaves=csrs.get_buses()
-            )
+            self.submodules += csr_bus.Interconnect(master=csr_master, slaves=csrs.get_buses())
 
         csr_wishbone = wishbone.Interface(
             data_width=bus_mock.data_width,
-            adr_width=bus_mock.data_width,
+            adr_width=bus_mock.address_width,
             bursting=bus_mock.bursting,
         )
-        self.submodules += wishbone.Wishbone2CSR(
-            bus_wishbone=csr_wishbone, bus_csr=csr_master
-        )
+        self.submodules += wishbone.Wishbone2CSR(bus_wishbone=csr_wishbone, bus_csr=csr_master)
 
         csr_region = SoCRegion(origin=self.core.mem_map["csr"], size=0x1000)
         self.slaves["csr"] = (csr_wishbone, csr_region)
@@ -116,9 +119,7 @@ class SoC(Module):
         self.masters["cpu_ibus"] = self.core.ibus
         self.masters["cpu_dbus"] = self.core.dbus
 
-        self.add_memory(
-            bus_mock, self.core.mem_map["rom"], 0xA000, read_only=True, name="rom"
-        )
+        self.add_memory(bus_mock, self.core.mem_map["rom"], 0xA000, read_only=True, name="rom")
         self.add_memory(bus_mock, self.core.mem_map["sram"], 0x1000, name="sram")
 
         self.create_interconnect(self.masters, self.slaves)
@@ -134,7 +135,7 @@ class SoC(Module):
             ic.add_peripheral(name=name, addr=mem_region.origin, size=mem_region.size)
 
         self.submodules.interconnect = Amaranth2Migen(
-            ic, platform, "wishbone_interconnect", self.build_dir
+            ic, self.platform, "wishbone_interconnect", self.build_dir
         )
 
         for name, master in masters.items():
@@ -191,14 +192,12 @@ class SoC(Module):
 
     def add_memory(self, bus_mock, origin, size, read_only=False, init=[], name=None):
         bus = wishbone.Interface()
-        self.submodules += wishbone.SRAM(
-            size, bus=bus, read_only=read_only, init=init, name=name
-        )
+        self.submodules += wishbone.SRAM(size, bus=bus, read_only=read_only, init=init, name=name)
         mem_region = SoCRegion(origin=origin, size=size)
         self.slaves[name] = (bus, mem_region)
 
 
-if __name__ == "__main__":
+def main():
     parser = argparse.ArgumentParser(prog="SoC generator")
     parser.add_argument(
         "--uart-type",
@@ -206,9 +205,7 @@ if __name__ == "__main__":
         default="uartbone",
         help="Select generated UART interface",
     )
-    parser.add_argument(
-        "--verilog", action="store_true", help="Generate verilog sources"
-    )
+    parser.add_argument("--verilog", action="store_true", help="Generate verilog sources")
     parser.add_argument(
         "--headers",
         action="store_true",
@@ -220,12 +217,18 @@ if __name__ == "__main__":
         default="build/",
         help="Directory to write build files to",
     )
+    parser.add_argument(
+        "--build-name",
+        action="store",
+        default="top",
+        help="Specifies the name of the build, which is used for naming the Verilog output file",
+    )
 
     group = parser.add_mutually_exclusive_group()
     group.add_argument(
         "--bitstream",
         action="store_true",
-        help="Generate verilog sources and bitstream (invokes vivado)",
+        help="Generate verilog sources for synthesis",
     )
     group.add_argument(
         "--sim",
@@ -238,13 +241,18 @@ if __name__ == "__main__":
 
     platform = Platform(device="xc7k70tfbg484-3")
     soc = SoC(platform, args.sim, args.uart_type, args.build_dir)
+
     if args.verilog:
         # Workaround - because litex does os.chdir in platform.build(), we also have to change
         # the working directory to be consistent (this is important for internal modules of
         # the SoC that might also generate verilog)
         os.chdir(args.build_dir)
-        platform.get_verilog(soc).write(f"top.v")
+        platform.get_verilog(soc).write(f"{args.build_name}.v")
     if args.bitstream:
-        platform.build(soc, build_dir=args.build_dir, build_name="top", run=False)
+        platform.build(soc, build_dir=args.build_dir, build_name=f"{args.build_name}", run=False)
     if args.headers:
         soc.write_headers()
+
+
+if __name__ == "__main__":
+    main()

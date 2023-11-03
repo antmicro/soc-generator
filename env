@@ -1,7 +1,0 @@
-#!/bin/bash
-PROJECT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
-THIRD_PARTY="$PROJECT_DIR/third_party"
-PYTHON_MODULES=(litex litex-boards litedram pythondata-cpu-vexriscv liteeth litescope liteiclink amaranth-soc)
-for MOD in ${PYTHON_MODULES[*]}; do
-	export PYTHONPATH="$THIRD_PARTY"/"$MOD":"$PYTHONPATH"
-done

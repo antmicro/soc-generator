@@ -1,3 +1,8 @@
+/*
+ * Copyright 2023 Antmicro
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 #ifndef H_UART_STDIO
 #define H_UART_STDIO
 

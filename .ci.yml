@@ -1,5 +1,7 @@
 stages:
+  - test
   - build
+  - test-examples
 
 image: debian:bookworm
 
@@ -14,24 +16,66 @@ before_script:
   - source miniconda3/bin/activate
   - conda create -n venv python=3.9
   - conda activate venv
-  - pip install -r requirements.txt
-  - source ./env
+
+lint:
+  stage: test
+  tags: ['ace-x86_64']
+  variables:
+    DEBIAN_FRONTEND: noninteractive
+  script:
+    - pip install ".[lint]"
+    - flake8 .
+    - black --check .
+    - isort --check .
+
+internal-checks:
+  stage: test
+  tags: ['ace-x86_64']
+  script:
+    - eval ${VERIFY_SCRIPT}
+
+build-wheel:
+  stage: build
+  tags: ['ace-x86_64']
+  variables:
+    DEBIAN_FRONTEND: noninteractive
+  script:
+    - mkdir wheel
+    - pip wheel --no-deps --wheel-dir wheel .
+  artifacts:
+    paths:
+      - wheel/
 
 verilator-sim:
-  stage: build
+  stage: test-examples
   tags: ['ace-x86_64']
   variables:
     DEBIAN_FRONTEND: noninteractive
     SCALENODE_RAM: 5000
     EXTRA_PKGS: verilator g++
   script:
+    - pip install "wheel/soc_generator-0.0.1-py3-none-any.whl[generate_soc_deps]"
     - make deps
     - make sim-run
   artifacts:
     paths:
-      - build/top.v
+      - build/top_sim.v
+      - build/wishbone_interconnect.v
       - build/dump.vcd
       - build/bios.bin
       - build/generated
       - build/logs
+
+synthesis-rtl:
+  stage: test-examples
+  tags: ['ace-x86_64']
+  variables:
+    DEBIAN_FRONTEND: noninteractive
+  script:
+    - pip install "wheel/soc_generator-0.0.1-py3-none-any.whl[generate_soc_deps]"
+    - make rtl
+  artifacts:
+    paths:
+      - build/top.v
+      - build/wishbone_interconnect.v
 

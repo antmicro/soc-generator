@@ -1,3 +1,6 @@
+// Copyright 2023 Antmicro
+// SPDX-License-Identifier: Apache-2.0
+
 #include "sim_uart.h"
 
 UART::UART(uint8_t *tx_valid, uint8_t *tx_ready, uint8_t *tx_data, uint8_t *rx_valid, uint8_t *rx_ready, uint8_t *rx_data) :

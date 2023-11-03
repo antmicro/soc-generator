@@ -1,3 +1,6 @@
+# Copyright 2023 Antmicro
+# SPDX-License-Identifier: Apache-2.0
+
 # Tools
 PYTHON = python3
 PREFIX = riscv64-unknown-elf
@@ -6,33 +9,42 @@ OBJCOPY = $(PREFIX)-objcopy
 NINJA = ninja
 MESON = meson
 
+# Directories
+FIRMWARE_DIR = soc_generator/firmware
+GEN_DIR = soc_generator/gen
+SCRIPTS_DIR = soc_generator/scripts
+SIM_DIR = soc_generator/sim
+
 # Files
-HEADERS = csr.h soc.h mem.h
-PY_SRC = generate_soc.py amaranth_wrapper.py wishbone_interconnect.py
+PY_SRC = $(SCRIPTS_DIR)/generate_soc.py $(GEN_DIR)/amaranth_wrapper.py $(GEN_DIR)/wishbone_interconnect.py
+SOC_GEN = generate_soc
 BUILD_DIR ?= build
 
 BASE_SOC_OPTS = --uart-type uart --build-dir $(BUILD_DIR)
 TARGET_SOC_OPTS =
 
-all: picolibc sim synth
+all: picolibc sim bitstream
 
-include headers.mk
-include bios.mk
-include verilator.mk
+include $(FIRMWARE_DIR)/headers.mk
+include $(FIRMWARE_DIR)/bios.mk
+include $(SIM_DIR)/verilator.mk
 
 deps: picolibc
 
 upload: $(BUILD_DIR)/top.bit
 	openFPGALoader --board antmicro_lpddr4_tester $<
 
-sim: TARGET_SOC_OPTS += --sim --verilog
+sim: TARGET_SOC_OPTS += --sim --verilog --build-name top_sim
 sim: $(BUILD_DIR)/obj_dir/Vtop
 
-synth: $(BUILD_DIR)/top.bit
+rtl: TARGET_SOC_OPTS += --build-name top
+rtl: $(BUILD_DIR)/top.v
+
+bitstream: $(BUILD_DIR)/top.bit
 
 sim-run: sim firmware
 	cd $(BUILD_DIR) && obj_dir/Vtop +trace
-	sed -i 's/.cc:2083:/_/g' $(BUILD_DIR)/dump.vcd
+	sed -i 's/.cc:[[:digit:]]\+:/_/g' $(BUILD_DIR)/dump.vcd
 
 picolibc:
 	mkdir -p $(PICOLIBC)/build
@@ -43,21 +55,19 @@ picolibc:
 	$(NINJA) -C $(PICOLIBC)/build
 	$(MESON) install -C $(PICOLIBC)/build --only-changed
 
-$(BUILD_DIR)/top.v: $(PY_SRC) | $(BUILD_DIR)
-	$(PYTHON) generate_soc.py $(BASE_SOC_OPTS) $(TARGET_SOC_OPTS)
-	rm -f *.init
-	touch $@
+$(BUILD_DIR)/top_sim.v: $(PY_SRC) | $(BUILD_DIR)
+	$(SOC_GEN) $(BASE_SOC_OPTS) $(TARGET_SOC_OPTS)
+	sed -i 's/"top_rom.init"/"bios.init"/g' $(BUILD_DIR)/top_sim.v
 
-$(BUILD_DIR)/top.tcl: $(PY_SRC) | $(BUILD_DIR)
-	$(PYTHON) generate_soc.py --bitstream $(BASE_SOC_OPTS) $(TARGET_SOC_OPTS)
-	rm -f *.init
-	touch $@
+$(BUILD_DIR)/top.tcl $(BUILD_DIR)/top.v &: $(PY_SRC) | $(BUILD_DIR)
+	$(SOC_GEN) --bitstream $(BASE_SOC_OPTS) $(TARGET_SOC_OPTS)
+	sed -i 's/"top_rom.init"/"bios.init"/g' $(BUILD_DIR)/top.v
 
 $(AUTOGEN_H) &: $(PY_SRC) | $(BUILD_DIR)
-	$(PYTHON) generate_soc.py --headers $(BASE_SOC_OPTS)
+	$(SOC_GEN) --headers $(BASE_SOC_OPTS)
 
-$(BUILD_DIR)/top.bit: $(BUILD_DIR)/top.v $(BUILD_DIR)/top.tcl $(BUILD_DIR)/top_rom.init | $(BUILD_DIR)
-	cd build && vivado -mode batch -source top.tcl
+$(BUILD_DIR)/top.bit: $(BUILD_DIR)/top.v $(BUILD_DIR)/top.tcl $(BUILD_DIR)/bios.init | $(BUILD_DIR)
+	cd $(BUILD_DIR) && vivado -mode batch -source top.tcl
 
 $(BUILD_DIR):
 	mkdir -p $(BUILD_DIR)
@@ -68,4 +78,4 @@ clean:
 distclean: clean
 	rm -rf $(PICOLIBC)/build $(PICOLIBC)/install
 
-.PHONY: all deps upload sim sim-run synth picolibc clean distclean
+.PHONY: all deps upload sim sim-run rtl bitstream picolibc clean distclean

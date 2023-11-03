@@ -1,4 +1,0 @@
--r requirements.txt
-black==23.3.0
-flake8==6.0.0
-pep8-naming==0.13.3

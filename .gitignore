@@ -3,3 +3,13 @@ build/
 
 # local CI testing directory
 .gitlab-ci-local/
+
+# packaging
+soc_generator.egg-info/
+
+# pycache directories
+**/__pycache__
+
+# venv directories
+env/
+venv/

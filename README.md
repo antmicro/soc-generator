@@ -3,7 +3,7 @@ This is a collection of tools for comprehensively generating SoCs together with 
 
 ## Install prerequisites
 You need to install:
-- python 3.9 (specifically this version due to litex compatibility issues with other versions) and pip
+- python 3.9 or 3.10 (specifically one of those two versions due to litex compatibility issues with other versions) and pip
 - riscv64-unknown-elf and native toolchain
 - make
 - meson
@@ -12,13 +12,6 @@ You need to install:
 
 ```
 sudo apt install git make g++ ninja-build gcc-riscv64-unknown-elf bsdextrautils
-```
-
-For installing and managing python dependencies using `conda` is recommended:
-```
-conda create -n venv python=3.9
-conda activate venv
-pip install -r requirements.txt
 ```
 
 To run the simulation you also need:
@@ -30,9 +23,9 @@ To create and load bitstream you also need:
 
 ## Usage
 
-Before building the project itself you need to set up your environment and build dependencies:
+Before building the project itself you need to install optional python dependencies and build third-party dependencies:
 ```
-source ./env
+pip install ".[generate_soc_deps]"
 make deps
 ```
 
@@ -43,11 +36,10 @@ To build the simulation and run hello world example run:
 make sim-run
 ```
 
-## Synthesis
+## Bitstream generation
 
 To build the bitstream and upload it to the FPGA board run:
 ```
-make synth
+make bitstream
 make upload
 ```
-

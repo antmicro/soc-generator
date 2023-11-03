@@ -1,3 +1,8 @@
+/*
+ * Copyright 2023 Antmicro
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 #include "uart_stdio.h"
 
 static FILE __stdio = FDEV_SETUP_STREAM(uart_putc, uart_getc, NULL, _FDEV_SETUP_RW);

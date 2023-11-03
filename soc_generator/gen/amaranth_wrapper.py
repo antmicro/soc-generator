@@ -1,9 +1,12 @@
+# Copyright 2023 Antmicro
+# SPDX-License-Identifier: Apache-2.0
+
 from dataclasses import dataclass
 
 from amaranth import Elaboratable, Shape
 from amaranth.back import verilog
 from amaranth.build.plat import Platform
-from amaranth.lib import enum, wiring
+from amaranth.lib import wiring
 from migen import *
 
 
@@ -24,10 +27,10 @@ class Amaranth2Migen(Module):
     Amaranth has two concepts to describe interfaces exposed by a module:
     - ``amaranth.lib.wiring.Signature`` class - it contains a description of a bundle of wires,
       each with its own width and direction
-    - ``amaranth.lib.wiring.Interface`` class - it contains a concrete instantiation of a ``Signature``,
-      i.e. actual Amaranth ``Signal``s. Interfaces can be created from signatures.
-    Convention is to use ``signature`` member in an ``Elaboratable`` to describe the public interface
-    of a module. More details can be found here:
+    - ``amaranth.lib.wiring.Interface`` class - it contains a concrete instantiation of
+      a ``Signature``, i.e. actual Amaranth ``Signal``s. Interfaces can be created from signatures.
+    Convention is to use ``signature`` member in an ``Elaboratable`` to describe the public
+    interface of a module. More details can be found here:
     https://github.com/amaranth-lang/rfcs/blob/main/text/0002-interfaces.md#guide-level-explanation
 
     Migen uses ``Record`` class to describe and instantiate a bundle of wires. It serves a similar
@@ -55,9 +58,7 @@ class Amaranth2Migen(Module):
         identical structure
     """
 
-    def __init__(
-        self, elaboratable: Elaboratable, platform: Platform, name: str, build_dir: str
-    ):
+    def __init__(self, elaboratable: Elaboratable, platform: Platform, name: str, build_dir: str):
         self.elaboratable = elaboratable
         self.platform = platform
         self.name = name

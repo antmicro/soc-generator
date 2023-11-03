@@ -1,0 +1,17 @@
+[flake8]
+extend-ignore = E203, F403, F405
+max-line-length = 100
+max-complexity = 27
+exclude =
+    .git,
+    .gitignore,
+    .gitmodules,
+    __pycache__,
+    venv,
+    third_party,
+    build,
+    .gitlab-ci-local,
+    miniconda3
+count = True
+show-source = True
+statistics = True
