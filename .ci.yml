@@ -1,0 +1,37 @@
+stages:
+  - build
+
+image: debian:bookworm
+
+before_script:
+  - apt --allow-releaseinfo-change update
+  - apt -qy install --no-install-recommends wget ca-certificates git make ninja-build gcc-riscv64-unknown-elf bsdextrautils $EXTRA_PKGS
+  - git submodule update --init --recursive
+  - mkdir -p miniconda3
+  - wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda3/miniconda.sh
+  - bash miniconda3/miniconda.sh -b -u -p miniconda3
+  - rm -rf miniconda3/miniconda.sh
+  - source miniconda3/bin/activate
+  - conda create -n venv python=3.9
+  - conda activate venv
+  - pip install -r requirements.txt
+  - source ./env
+
+verilator-sim:
+  stage: build
+  tags: ['ace-x86_64']
+  variables:
+    DEBIAN_FRONTEND: noninteractive
+    SCALENODE_RAM: 5000
+    EXTRA_PKGS: verilator g++
+  script:
+    - make deps
+    - make sim-run
+  artifacts:
+    paths:
+      - build/top.v
+      - build/dump.vcd
+      - build/bios.bin
+      - build/generated
+      - build/logs
+
