@@ -51,7 +51,7 @@ class WishboneRRInterconnect(Elaboratable):
         self.granularity = granularity
         self.features = features
 
-        self.signature = Signature({})
+        self._signature = {}
 
         self._arbiter = wishbone.Arbiter(
             addr_width=self.addr_width,
@@ -65,6 +65,10 @@ class WishboneRRInterconnect(Elaboratable):
             granularity=self.granularity,
             features=self.features,
         )
+
+    @property
+    def signature(self):
+        return Signature(self._signature)
 
     def elaborate(self, platform):
         m = Module()
@@ -89,7 +93,7 @@ class WishboneRRInterconnect(Elaboratable):
         bus = signature.create(path=(name,))
         setattr(self, name, bus)
 
-        self.signature.members[name] = Out(signature)
+        self._signature[name] = Out(signature)
         self._arbiter.add(flipped(bus))
 
     def add_peripheral(self, *, name: str, addr: int, size: int):
@@ -115,9 +119,9 @@ class WishboneRRInterconnect(Elaboratable):
             granularity=self.granularity,
             features=self.features,
         )
-        signature.memory_map = mmap
         bus = signature.create(path=(name,))
+        bus.memory_map = mmap
         setattr(self, name, bus)
 
-        self.signature.members[name] = Out(signature)
+        self._signature[name] = Out(signature)
         self._decoder.add(bus, addr=addr)
