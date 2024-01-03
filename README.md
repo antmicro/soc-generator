@@ -1,4 +1,7 @@
 # SoC generator
+
+Copyright (c) 2023-2024 [Antmicro](https://www.antmicro.com)
+
 This is a collection of tools for comprehensively generating SoCs together with their firmware.
 
 ## Install prerequisites
