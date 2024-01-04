@@ -22,7 +22,7 @@ To run the simulation you also need:
 
 To create and load bitstream you also need:
 - vivado (preferably version 2020.2)
-- openFPGALoader ([this branch](https://github.com/antmicro/openFPGALoader.git))
+- openFPGALoader ([this branch](https://github.com/antmicro/openFPGALoader/tree/antmicro-ddr-tester-boards))
 
 ## Usage
 
