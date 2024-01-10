@@ -54,17 +54,19 @@ verilator-sim:
     SCALENODE_RAM: 5000
     EXTRA_PKGS: verilator g++
   script:
-    - pip install "wheel/soc_generator-0.0.1-py3-none-any.whl[generate_soc_deps]"
+    - pip install "wheel/soc_generator-0.0.1-py3-none-any.whl"
+    - cd examples/simple_soc
+    - pip install -r requirements.txt
     - make deps
     - make sim-run
   artifacts:
     paths:
-      - build/top_sim.v
-      - build/wishbone_interconnect.v
-      - build/dump.vcd
-      - build/bios.bin
-      - build/generated
-      - build/logs
+      - examples/simple_soc/build/top_sim.v
+      - examples/simple_soc/build/wishbone_interconnect.v
+      - examples/simple_soc/build/dump.vcd
+      - examples/simple_soc/build/bios.bin
+      - examples/simple_soc/build/generated
+      - examples/simple_soc/build/logs
 
 synthesis-rtl:
   stage: test-examples
@@ -72,10 +74,12 @@ synthesis-rtl:
   variables:
     DEBIAN_FRONTEND: noninteractive
   script:
-    - pip install "wheel/soc_generator-0.0.1-py3-none-any.whl[generate_soc_deps]"
+    - pip install "wheel/soc_generator-0.0.1-py3-none-any.whl"
+    - cd examples/simple_soc
+    - pip install -r requirements.txt
     - make rtl
   artifacts:
     paths:
-      - build/top.v
-      - build/wishbone_interconnect.v
+      - examples/simple_soc/build/top.v
+      - examples/simple_soc/build/wishbone_interconnect.v
 

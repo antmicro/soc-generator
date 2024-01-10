@@ -17,12 +17,10 @@ classifiers = [
     "License :: OSI Approved :: Apache Software License",
     "Operating System :: OS Independent",
 ]
-requires-python = ">=3.9,<3.11"
+requires-python = ">=3.8,<3.13"
 readme = "README.md"
 license = {file = "LICENSE"}
 dependencies = [
-    "migen>=0.9.2",
-    "meson>=1.2.1",
     "packaging>=23.0",
     "amaranth-yosys",
     "amaranth==0.4.0.*",
@@ -36,17 +34,6 @@ lint = [
     "pep8-naming==0.13.3",
     "isort==5.12.0",
 ]
-generate_soc_deps = [
-    "litedram @ git+https://github.com/antmicro/litedram@52b5434c47f76fb525fe875ccc4911ed3b264bfd",
-    "liteeth @ git+https://github.com/enjoy-digital/liteeth@b191f78021b2b851b5e7f64d4d91fc838cc4f0c5",
-    "liteiclink @ git+https://github.com/enjoy-digital/liteiclink@f3eadbd1165a8055c7c2c98b72c450ca1bdcc09f",
-    "litex @ git+https://github.com/antmicro/litex@d2615061cb7f79e65560c3bf4bde8ba8025b06b4",
-    "litex-boards @ git+https://github.com/antmicro/litex-boards@c94548c663603ab68ebb68063d5ea39a49b6aea9",
-    "pythondata-cpu-vexriscv @ git+https://github.com/litex-hub/pythondata-cpu-vexriscv@a36d99eeea984c261e16b744fc1d287c81099777",
-]
-
-[project.scripts]
-generate_soc = "soc_generator.scripts.generate_soc:main"
 
 [tool.setuptools.packages.find]
 namespaces = false

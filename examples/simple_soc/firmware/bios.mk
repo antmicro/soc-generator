@@ -4,7 +4,7 @@
 include $(FIRMWARE_DIR)/headers.mk
 
 LITEX = $(shell python -c "import litex; print(litex.__path__[0])")/soc
-PICOLIBC = third_party/picolibc
+PICOLIBC = ../../third_party/picolibc
 
 LIBBASE_OBJ = uart.o memtest.o system.o
 FIRMWARE_OBJ = bios.o uart_stdio.o

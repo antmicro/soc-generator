@@ -10,14 +10,14 @@ NINJA = ninja
 MESON = meson
 
 # Directories
-FIRMWARE_DIR = soc_generator/firmware
-GEN_DIR = soc_generator/gen
-SCRIPTS_DIR = soc_generator/scripts
-SIM_DIR = soc_generator/sim
+FIRMWARE_DIR = firmware
+GEN_DIR = ../../soc_generator/gen
+SCRIPTS_DIR = scripts
+SIM_DIR = sim
 
 # Files
 PY_SRC = $(SCRIPTS_DIR)/generate_soc.py $(GEN_DIR)/amaranth_wrapper.py $(GEN_DIR)/wishbone_interconnect.py
-SOC_GEN = generate_soc
+SOC_GEN = python $(SCRIPTS_DIR)/generate_soc.py
 BUILD_DIR ?= build
 
 BASE_SOC_OPTS = --uart-type uart --build-dir $(BUILD_DIR)
