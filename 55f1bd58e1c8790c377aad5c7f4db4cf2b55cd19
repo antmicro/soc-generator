@@ -1,0 +1,24 @@
+{
+    "readmes": [
+      "soc-generator/README.md"
+    ],
+    "readme_text": ,
+    "license": "Apache-2.0",
+    "license_file": "LICENSE",
+    "title": "SoC generator",
+    "abstract": "<p>This is a collection of tools for comprehensively generating SoCs together with their firmware.</p>\n",
+    "tags": [
+      "FPGA",
+      "SOC",
+      "ASIC"
+    ],
+    "www": ,
+    "categories": ["ASIC & FPGA"],
+    "logo1": "",
+    "logo2": "",
+    "creation_date": "2023-12-04",
+    "contributors_count": 179,
+    "languages": {},
+    "images": [],
+    "remote_images": []
+}
