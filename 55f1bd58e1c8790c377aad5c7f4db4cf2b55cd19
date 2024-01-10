@@ -17,8 +17,12 @@
     "logo1": "",
     "logo2": "",
     "creation_date": "2023-12-04",
-    "contributors_count": ,
+    "contributors_count": 1,
     "languages": {
+      "python": 66.9,
+      "c++": 15.5,
+      "makefile": 14.2,
+      "c": 3.4
     },
     "images": [],
     "remote_images": []
