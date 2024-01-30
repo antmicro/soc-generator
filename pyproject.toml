@@ -24,7 +24,7 @@ dependencies = [
     "packaging>=23.0",
     "amaranth-yosys",
     "amaranth==0.4.0.*",
-    "amaranth-soc @ git+https://github.com/antmicro/amaranth-soc@236384fcaee6e3d192aedcf6ff119d90c5f56046",
+    "amaranth-soc",
 ]
 
 [project.optional-dependencies]
