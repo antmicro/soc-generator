@@ -97,8 +97,9 @@ class WishboneRRInterconnect(Elaboratable):
         self._arbiter.add(flipped(bus))
 
     def add_peripheral(self, *, name: str, addr: int, size: int):
-        addr_width = log2_int(size, need_pow2=False)
         granularity_bits = log2_int(self.data_width // self.granularity)
+        mmap_addr_width = log2_int(size, need_pow2=False)
+        bus_addr_width = log2_int(addr + size, need_pow2=False)
 
         # Convention of what addr_width and data_width mean for MemoryMap is different than for
         # interfaces, in particular:
@@ -107,14 +108,14 @@ class WishboneRRInterconnect(Elaboratable):
         # - data_width is width of the minimum addressable unit, e.g. a byte
         # This is mentioned in amaranth_soc.wishbone.Interface docstring
         mmap = MemoryMap(
-            addr_width=addr_width + granularity_bits,
+            addr_width=mmap_addr_width,
             data_width=self.granularity,
             alignment=log2_int(self.data_width),
         )
         mmap.add_resource(DummyResource(), name=name, size=size)
 
         signature = wishbone.Signature(
-            addr_width=addr_width,
+            addr_width=bus_addr_width - granularity_bits,
             data_width=self.data_width,
             granularity=self.granularity,
             features=self.features,
