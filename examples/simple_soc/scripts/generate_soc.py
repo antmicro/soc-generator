@@ -5,23 +5,17 @@ import argparse
 import os
 from dataclasses import dataclass
 
-try:
-    import litex.soc.integration.export as export
-    import litex.soc.interconnect.csr_bus as csr_bus
-    from litex.build.generic_platform import Pins, Subsignal
-    from litex.build.io import CRG as SimCRG  # noqa: N811
-    from litex.soc.cores import timer, uart
-    from litex.soc.cores.cpu.vexriscv import VexRiscv
-    from litex.soc.integration.soc import SoCCSRRegion, SoCRegion
-    from litex.soc.interconnect import wishbone
-    from litex_boards.platforms.antmicro_lpddr4_test_board import Platform
-    from litex_boards.targets import antmicro_lpddr4_test_board
-    from migen import *
-except ImportError:
-    raise RuntimeError(
-        'Missing dependencies, you need to install "generate_soc_deps" optional dependencies'
-        'of soc_generator package, e.g. "pip install soc_generator[generate_soc_deps]"'
-    )
+import litex.soc.integration.export as export
+import litex.soc.interconnect.csr_bus as csr_bus
+from litex.build.generic_platform import Pins, Subsignal
+from litex.build.io import CRG as SimCRG  # noqa: N811
+from litex.soc.cores import timer, uart
+from litex.soc.cores.cpu.vexriscv import VexRiscv
+from litex.soc.integration.soc import SoCCSRRegion, SoCRegion
+from litex.soc.interconnect import wishbone
+from litex_boards.platforms.antmicro_lpddr4_test_board import Platform
+from litex_boards.targets import antmicro_lpddr4_test_board
+from migen import *
 
 from soc_generator.gen.amaranth_wrapper import Amaranth2Migen
 from soc_generator.gen.wishbone_interconnect import WishboneRRInterconnect
