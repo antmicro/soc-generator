@@ -5,17 +5,19 @@ stages:
 
 image: debian:bookworm
 
+.activate_conda_env_template: &activate_conda_env |-
+  source miniconda3/bin/activate
+  conda create -n venv python=3.9
+  conda activate venv
+
 before_script:
   - apt --allow-releaseinfo-change update
   - apt -qy install --no-install-recommends wget ca-certificates git make ninja-build gcc-riscv64-unknown-elf bsdextrautils $EXTRA_PKGS
   - git submodule update --init --recursive
   - mkdir -p miniconda3
-  - wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda3/miniconda.sh
+  - wget https://repo.anaconda.com/miniconda/Miniconda3-py39_24.7.1-0-Linux-x86_64.sh -O miniconda3/miniconda.sh
   - bash miniconda3/miniconda.sh -b -u -p miniconda3
   - rm -rf miniconda3/miniconda.sh
-  - source miniconda3/bin/activate
-  - conda create -n venv python=3.9
-  - conda activate venv
 
 lint:
   stage: test
@@ -23,6 +25,7 @@ lint:
   variables:
     DEBIAN_FRONTEND: noninteractive
   script:
+    - *activate_conda_env
     - pip install ".[lint]"
     - flake8 .
     - black --check .
@@ -40,6 +43,7 @@ build-wheel:
   variables:
     DEBIAN_FRONTEND: noninteractive
   script:
+    - *activate_conda_env
     - mkdir wheel
     - pip wheel --no-deps --wheel-dir wheel .
   artifacts:
@@ -54,6 +58,7 @@ verilator-sim:
     SCALENODE_RAM: 5000
     EXTRA_PKGS: verilator g++
   script:
+    - *activate_conda_env
     - pip install "wheel/soc_generator-0.0.1-py3-none-any.whl"
     - cd examples/simple_soc
     - pip install -r requirements.txt
@@ -74,6 +79,7 @@ synthesis-rtl:
   variables:
     DEBIAN_FRONTEND: noninteractive
   script:
+    - *activate_conda_env
     - pip install "wheel/soc_generator-0.0.1-py3-none-any.whl"
     - cd examples/simple_soc
     - pip install -r requirements.txt
@@ -82,4 +88,3 @@ synthesis-rtl:
     paths:
       - examples/simple_soc/build/top.v
       - examples/simple_soc/build/wishbone_interconnect.v
-
